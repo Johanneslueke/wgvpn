@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT" 
 authors = ["Johannes Lüke"]
+repository = "https://github.com/Johanneslueke/wgvpn"
 description = "Wireguard bindings and wrapper around bindings for safe access - WIP"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
