@@ -125,7 +125,7 @@ mod tests {
         let ctx = Context {
             interfaces : vec![ "wg10", "wg11"],
             createInterface: Box::new(| this: &Context| {
-                let _ = deleteDevice("wg3").unwrap();
+                let _ = deleteDevice("wg3").unwrap_or_default();
                 for ele in this.interfaces.clone() {
                     let _ = addDevice(ele);
                 }
