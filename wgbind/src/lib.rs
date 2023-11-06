@@ -154,13 +154,13 @@ mod tests {
     #[test]
     fn it_adds_a_device() {
         let ctx = setup();
-        let device = *ctx.interfaces.first().unwrap().clone();
+        let device = ctx.interfaces.first().unwrap().clone();
         drop(ctx);
 
-        let result = addDevice(&device); 
+        let result = addDevice(device); 
         assert!(matches!(result, Ok(())),"{:?}",result );
         
-        let result = deleteDevice(&device); 
+        let result = deleteDevice(device); 
         assert!(matches!(result, Ok(())),"{:?}", result );
     }
 
