@@ -128,7 +128,7 @@ mod tests {
         let result = getDevice("wg3".into());
         let tranform = unsafe {
             |d: wg_device| {
-                let data = unsafe { d.name.as_ptr().cast() as *const ::std::os::raw::c_char };
+                let data =  d.name.as_ptr().cast() as *const ::std::os::raw::c_char ;
                 CStr::from_ptr( data ) 
             }
         };
