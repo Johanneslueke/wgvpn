@@ -22,6 +22,6 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - run: cargo publish --token ${CRATE_TOKEN}
+      - run: cargo publish -p wgbind --token ${CRATE_TOKEN}
         env:
           CRATE_TOKEN: ${{ secrets.CRATE_TOKEN }}
