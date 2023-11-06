@@ -30,7 +30,7 @@ unsafe fn determineLength(  mut ptr :  *mut i8) -> usize {
 pub fn listDeviceNames() -> Option<Vec<String>> {
     // The type behind the c_buffer pointer is a string containing several \0 terminated strings
     // the caller does not own this string!!!
-    let c_buffer = unsafe { wg_list_device_names() };
+    let mut c_buffer = unsafe { wg_list_device_names() };
     if c_buffer.is_null() {
         return None
     } 
@@ -55,7 +55,7 @@ pub fn listDeviceNames() -> Option<Vec<String>> {
     Some(Vec::from_iter(result.split_terminator('\0').map(|x| String::from(x))))
 }
 
-pub fn addDevice(device_name: String) -> Result<(),std::io::Error>{
+pub fn addDevice(device_name: &str) -> Result<(),std::io::Error>{
     let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_add_device(name)};
 
@@ -66,7 +66,7 @@ pub fn addDevice(device_name: String) -> Result<(),std::io::Error>{
     Err(std::io::Error::last_os_error())
 
 }
-pub fn deleteDevice(device_name: String) -> Result<(),std::io::Error>{
+pub fn deleteDevice(device_name: &str) -> Result<(),std::io::Error>{
     let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_del_device(name)};
 
@@ -78,7 +78,7 @@ pub fn deleteDevice(device_name: String) -> Result<(),std::io::Error>{
 
 }
 
-pub fn getDevice(device_name: String) -> Result<wg_device,std::io::Error>{
+pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
     let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
     //let structsize = std::mem::size_of::<wg_device>()+ std::mem::size_of::<wg_peer>()*2;
 
@@ -104,36 +104,82 @@ pub fn getDevice(device_name: String) -> Result<wg_device,std::io::Error>{
  
 
 #[cfg(test)]
-mod tests {
+mod tests { 
     use std::ffi::CStr;
-
     use super::*;
 
+    struct Context {
+        interfaces : Vec<&'static str>,
+        createInterface : Box<dyn Fn(&Context)>
+    }
+
+    impl Drop for Context{
+        fn drop(&mut self) {
+            for ele in self.interfaces.drain(..) {
+                let _ = deleteDevice(ele);
+            };
+        }
+    }
+
+    fn setup() -> Context {
+        let ctx = Context {
+            interfaces : vec![ "wg10", "wg11"],
+            createInterface: Box::new(| this: &Context| {
+                let _ = deleteDevice("wg3").unwrap();
+                for ele in this.interfaces.clone() {
+                    let _ = addDevice(ele);
+                }
+        
+            })
+        };
+
+       
+        ctx
+    }
+
     #[test]
-    fn it_works() {
-        let result = listDeviceNames().unwrap_or_default();
-        println!("{} => {:?}", result.len(),result); 
+    fn it_should_return_a_list_of_two_strings() {
+        let ctx = setup();
+        ctx.createInterface.as_ref()(&ctx);
+
+        let device = *ctx.interfaces.first().unwrap();
+
+        let result = listDeviceNames();
+        assert!((matches!(result, Some(_) )),"list should never return none");
+        assert_eq!(result.unwrap().first().unwrap().as_str(), device)
+ 
     }
 
     #[test]
     fn it_adds_a_device() {
-        let result = addDevice("wg3".into());
-        println!("{:?}", result); 
-        let result = deleteDevice("wg3".into());
-        println!("{:?}", result); 
+        let ctx = setup();
+        let device = *ctx.interfaces.first().unwrap();
+
+        let result = addDevice(device); 
+        assert!(matches!(result, Ok(())),"{:?}",result );
+        
+        let result = deleteDevice(device); 
+        assert!(matches!(result, Ok(())),"{:?}", result );
     }
 
     #[test]
     fn it_gets_a_device() {
-        let result = getDevice("wg3".into());
-        let tranform = unsafe {
+        let ctx = setup();
+        ctx.createInterface.as_ref()(&ctx);
+
+        let device = *ctx.interfaces.first().unwrap();
+
+        let result = getDevice( device);
+        let transform = unsafe {
             |d: wg_device| {
                 let data =  d.name.as_ptr().cast() as *const ::std::os::raw::c_char ;
-                CStr::from_ptr( data ) 
+                let c_buffer = CStr::from_ptr( data ) ;
+                c_buffer.to_str().to_owned()
             }
         };
-        
-        println!("{:?}", result.map( tranform )); 
-        
+        let tmp: Result<wg_device, std::io::Error> = result.or_else(|e| {
+            panic!("{:?}", e)
+        });
+        assert!(matches!(transform(tmp.unwrap()), Ok(x) if x == device)); 
     }
 }
