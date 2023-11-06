@@ -115,9 +115,9 @@ mod tests {
 
     impl Drop for Context{
         fn drop(&mut self) {
-            for ele in self.interfaces.drain(..) {
-                let _ = deleteDevice(ele);
-            };
+            self.interfaces.iter().for_each(|ele| {
+                let _ = deleteDevice(*ele);
+            });
         }
     }
 
@@ -127,6 +127,7 @@ mod tests {
             createInterface: Box::new(| this: &Context| {
                 let _ = deleteDevice("wg3").unwrap_or_default();
                 for ele in this.interfaces.clone() {
+                    let _ = deleteDevice(ele).unwrap_or_default();
                     let _ = addDevice(ele);
                 }
         
