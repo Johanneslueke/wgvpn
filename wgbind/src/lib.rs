@@ -2,7 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::alloc::Layout;
+use std::{alloc::Layout, ffi::{CStr, CString}};
 
 extern crate libc;
  
@@ -56,7 +56,7 @@ pub fn listDeviceNames() -> Option<Vec<String>> {
 }
 
 pub fn addDevice(device_name: &str) -> Result<(),std::io::Error>{
-    let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
+    let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_add_device(name)};
 
     if result == 0 {
@@ -67,7 +67,7 @@ pub fn addDevice(device_name: &str) -> Result<(),std::io::Error>{
 
 }
 pub fn deleteDevice(device_name: &str) -> Result<(),std::io::Error>{
-    let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
+    let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_del_device(name)};
 
     if result == 0 {
@@ -79,7 +79,7 @@ pub fn deleteDevice(device_name: &str) -> Result<(),std::io::Error>{
 }
 
 pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
-    let name = device_name.as_ptr().cast() as *const ::std::os::raw::c_char ;
+    let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     //let structsize = std::mem::size_of::<wg_device>()+ std::mem::size_of::<wg_peer>()*2;
 
     let layout = Layout::new::<wg_device>();
