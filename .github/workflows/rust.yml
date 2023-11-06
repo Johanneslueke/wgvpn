@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: rust:latest
-      options: --user root
+      options: --user root --privileged --cap-add=NET_ADMIN
     steps:
     - uses: actions/checkout@v3
     - name: install-deps
