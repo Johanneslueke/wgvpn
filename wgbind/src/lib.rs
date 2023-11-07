@@ -147,8 +147,8 @@ mod tests {
 
         let result = listDeviceNames();
         assert!((matches!(result, Some(_) )),"list should never return none");
-        assert_eq!(result.unwrap().first().unwrap().as_str(), device)
- 
+        assert_eq!(result.unwrap().first().unwrap().as_str(), device);
+        drop(ctx)
     }
 
     #[test]
@@ -184,5 +184,6 @@ mod tests {
             panic!("{:?}", e)
         });
         assert!(matches!(transform(tmp.unwrap()), Ok(x) if x == device)); 
+        drop(ctx);
     }
 }
