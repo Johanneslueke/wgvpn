@@ -105,7 +105,7 @@ pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
 
 #[cfg(test)]
 mod tests { 
-    use std::ffi::CStr;
+    use std::{ffi::CStr,};
     use super::*;
 
     struct Context {
@@ -116,7 +116,7 @@ mod tests {
     impl Drop for Context{
         fn drop(&mut self) {
             self.interfaces.iter().for_each(|ele| {
-                let _ = deleteDevice(*ele);
+                let _ = deleteDevice(*ele) ;
             });
         }
     }
@@ -125,10 +125,11 @@ mod tests {
         let ctx = Context {
             interfaces : vec![ "wg11", "wg10"],
             createInterface: Box::new(| this: &Context| {
-                let _ = deleteDevice("wg3").unwrap_or_default();
                 for ele in this.interfaces.clone() {
                     let _ = deleteDevice(ele).unwrap_or_default();
-                    let _ = addDevice(ele);
+                    let _ = addDevice(ele).unwrap_or_else(|e| {
+                        panic!("{:?}",e)
+                    });
                 }
         
             })
@@ -159,7 +160,16 @@ mod tests {
         drop(ctx);
 
         let result = addDevice(device); 
-        assert!(matches!(result, Ok(())),"{:?}",result );
+        match result {
+            Ok(r) => {
+                assert!(matches!(r, ()),"{:?}",result );
+            },
+            Err(e) => {
+                assert_eq!(e.kind(), std::io::ErrorKind::AlreadyExists)
+            },
+            _ => assert!(false, "{:?}",result)
+        }
+        
         
         let result = deleteDevice(device); 
         assert!(matches!(result, Ok(())),"{:?}", result );

@@ -13,10 +13,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uint8_t wg_key[32];
+typedef uint8_t wg_key[32]; 
 typedef char wg_key_b64_string[((sizeof(wg_key) + 2) / 3) * 4 + 1];
 
-/* Cross platform __kernel_timespec */
+/** Cross platform __kernel_timespec */
 struct timespec64 {
 	int64_t tv_sec;
 	int64_t tv_nsec;
@@ -88,6 +88,7 @@ typedef struct wg_device {
 #define wg_for_each_device_name(__names, __name, __len) for ((__name) = (__names), (__len) = 0; ((__len) = strlen(__name)); (__name) += (__len) + 1)
 #define wg_for_each_peer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
 #define wg_for_each_allowedip(__peer, __allowedip) for ((__allowedip) = (__peer)->first_allowedip; (__allowedip); (__allowedip) = (__allowedip)->next_allowedip)
+
 
 int wg_set_device(wg_device *dev);
 int wg_get_device(wg_device **dev, const char *device_name);

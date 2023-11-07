@@ -14,5 +14,5 @@ description = "Wireguard bindings and wrapper around bindings for safe access - 
 libc = "0.2.150"
 
 [build-dependencies]
-bindgen = "0.65.1"
+bindgen = "0.69.1"
 cc = "1.0"
