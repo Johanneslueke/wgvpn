@@ -154,7 +154,8 @@ mod tests {
     #[test]
     fn it_adds_a_device() {
         let ctx = setup();
-        let device = ctx.interfaces.first().unwrap().clone();
+        let device = ctx.interfaces.clone();
+        let device  = *(device.first().unwrap());
         drop(ctx);
 
         let result = addDevice(device); 
