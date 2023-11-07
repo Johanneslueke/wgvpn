@@ -29,7 +29,7 @@ fn main() {
         .use_core()
 
         .anon_fields_prefix("wg_anonym_")
-        //.array_pointers_in_arguments(false)
+        .array_pointers_in_arguments(true)
 
         . must_use_type("int") 
         . must_use_type("bool")

@@ -863,22 +863,24 @@ extern "C" {
     pub fn wg_list_device_names() -> *mut ::core::ffi::c_char;
 }
 extern "C" {
-    pub fn wg_key_to_base64(base64: *mut ::core::ffi::c_char, key: *mut u8);
+    pub fn wg_key_to_base64(base64: *mut wg_key_b64_string, key: *mut wg_key);
 }
 extern "C" {
     #[must_use]
-    pub fn wg_key_from_base64(key: *mut u8, base64: *mut ::core::ffi::c_char)
-        -> ::core::ffi::c_int;
+    pub fn wg_key_from_base64(
+        key: *mut wg_key,
+        base64: *mut wg_key_b64_string,
+    ) -> ::core::ffi::c_int;
 }
 extern "C" {
-    pub fn wg_key_is_zero(key: *mut u8) -> bool;
+    pub fn wg_key_is_zero(key: *mut wg_key) -> bool;
 }
 extern "C" {
-    pub fn wg_generate_public_key(public_key: *mut u8, private_key: *mut u8);
+    pub fn wg_generate_public_key(public_key: *mut wg_key, private_key: *mut wg_key);
 }
 extern "C" {
-    pub fn wg_generate_private_key(private_key: *mut u8);
+    pub fn wg_generate_private_key(private_key: *mut wg_key);
 }
 extern "C" {
-    pub fn wg_generate_preshared_key(preshared_key: *mut u8);
+    pub fn wg_generate_preshared_key(preshared_key: *mut wg_key);
 }
