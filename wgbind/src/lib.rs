@@ -5,7 +5,9 @@
 use std::{alloc::Layout, ffi::{CStr, CString}};
 
 extern crate libc;
- 
+extern crate wgbindraw_sys;
+
+use wgbindraw_sys::*;
 
 
 

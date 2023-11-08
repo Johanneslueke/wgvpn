@@ -12,6 +12,7 @@ description = "Wireguard bindings and wrapper around bindings for safe access - 
 
 [dependencies]
 libc = "0.2.150"
+wgbindraw-sys = "0.1.0"
 
 [build-dependencies]
 bindgen = "0.69.1"
