@@ -289,6 +289,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wgbindraw-sys"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "which"
 version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

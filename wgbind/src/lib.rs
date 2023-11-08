@@ -7,7 +7,7 @@ use std::{alloc::Layout, ffi::{CStr, CString}};
 extern crate libc;
  
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
 
 unsafe fn determineLength(  mut ptr :  *mut i8) -> usize {
     let mut prev : i8 = 0;

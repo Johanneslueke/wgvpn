@@ -24,7 +24,7 @@ fn main() {
         .emit_builtins()
         .emit_ir()
         .emit_clang_ast()
-        .emit_ir_graphviz(".")
+        .emit_ir_graphviz("./graphviz.gz")
         .wrap_unsafe_ops(true)
         .use_core()
 

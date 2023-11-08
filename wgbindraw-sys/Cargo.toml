@@ -1,0 +1,18 @@
+[package]
+name = "wgbindraw-sys"
+version = "0.1.0"
+edition = "2021"
+license = "MIT" 
+authors = ["Johannes Lüke"]
+repository = "https://github.com/Johanneslueke/wgvpn"
+readme = "ReadMe.md"
+description = "Wireguard bindings: This crate contains only auto-generated c bindings - WIP"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.150"
+
+[build-dependencies]
+bindgen = "0.69.1"
+cc = "1.0"
