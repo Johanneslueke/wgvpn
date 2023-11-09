@@ -11,15 +11,14 @@ const libctypes: &[&str] = &[
     "sockaddr_in",
     "sockaddr_in6",
     "timespec",
-    
 ];
 
 const ignoretypes: &[&str] = &[
     "in6_addr__bindgen_ty_1",
     "sa_family_t",
     "in_addr_t",
-    "in_port_t"
-    ];
+    "in_port_t",
+];
 
 fn main() {
     //println!("cargo:rustc-link-lib=clib");
@@ -46,9 +45,8 @@ fn main() {
         .allowlist_function("wg_.*")
         .bitfield_enum("wg_peer_flags")
         .bitfield_enum("wg_device_flags")
-         
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
-        .raw_line("extern crate libc;");;
+        .raw_line("extern crate libc;");
 
     for libc_type in libctypes {
         bindings = bindings
@@ -60,12 +58,16 @@ fn main() {
         bindings = bindings.blocklist_type(useless_type);
     }
 
-    let bindings = bindings.generate().expect("Couldn't generate bindings");
 
-    let out_path = PathBuf::from("./src");
-    bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect(" Could write bindings");
+    let bindings = bindings.generate().expect("Couldn't generate bindings");
+    if std::env::var("DOCS_RS").is_err() {
+        let out_path = PathBuf::from("./src");
+        bindings
+            .write_to_file(out_path.join("bindings.rs"))
+            .expect(" Could write bindings");
+    }
+
+        
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
