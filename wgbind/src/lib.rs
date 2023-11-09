@@ -1,6 +1,4 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+#![crate_name = "wgbind"]
 
 use std::{alloc::Layout, ffi::{CStr, CString}};
 
@@ -11,7 +9,7 @@ use wgbindraw_sys::*;
 
 
 
-unsafe fn determineLength(  mut ptr :  *mut i8) -> usize {
+unsafe fn determine_length(  mut ptr :  *mut i8) -> usize {
     let mut prev : i8 = 0;
     let mut len   = 0; 
     loop {
@@ -29,7 +27,41 @@ unsafe fn determineLength(  mut ptr :  *mut i8) -> usize {
     len
 }
 
-pub fn listDeviceNames() -> Option<Vec<String>> {
+
+/// List all available wireguard devices
+/// 
+/// Returns a list of Strings. These are copies generated from the singular *mut i8 string 
+/// returned by the wgbindraw-sys crate. 
+/// 
+/// The copies are generated because we have no knowledge how long the c-string is valid. 
+/// Hence we copy the values and gain ownership of the information. 
+/// 
+/// Another reason is the original format looks like this:
+/// 
+/// "first\0second\0third\0forth\0last\0\0"
+/// 
+/// severval \0 terminated strings with in a \0 terminated string. We extract each substring
+/// and put it on the Heap. From that point on we are safe.
+/// 
+/// # Example 
+/// ```
+/// 
+///   use wgbind::list_device_names; 
+/// 
+///   let names : Vec<String> = list_device_names().unwrap_or_default();
+/// 
+///   for name in &names {
+///   
+///     println!("{}",name);
+///   }
+/// 
+///   assert_eq!(names.len(), 0);
+/// 
+/// ```
+/// 
+/// 
+/// 
+pub fn list_device_names() -> Option<Vec<String>> {
     // The type behind the c_buffer pointer is a string containing several \0 terminated strings
     // the caller does not own this string!!!
     let mut c_buffer = unsafe { wg_list_device_names() };
@@ -41,7 +73,7 @@ pub fn listDeviceNames() -> Option<Vec<String>> {
     //The string terminates if two \0 appear in sequence. if these do not
     //occur the program loops for ever and might start reading from memory
     //it does not own!!!
-    let c_buffer_length = unsafe { determineLength(c_buffer) };
+    let c_buffer_length = unsafe { determine_length(c_buffer) };
     if c_buffer_length == 0
     {
         return None
@@ -57,7 +89,31 @@ pub fn listDeviceNames() -> Option<Vec<String>> {
     Some(Vec::from_iter(result.split_terminator('\0').map(|x| String::from(x))))
 }
 
-pub fn addDevice(device_name: &str) -> Result<(),std::io::Error>{
+/// Add a wireguard device
+/// 
+/// What is a device? Simply just a network interface. A user could instead simply create
+/// this interface manually via:
+/// 
+/// ip link add dev wg0 type wireguard
+/// 
+/// # Arguments
+/// 
+/// * `device_name` - the name of the new wireguard device (network interface)
+/// 
+/// # Example
+/// 
+/// ```
+/// use wgbind::{add_device,delete_device};
+/// 
+/// let actual = add_device("wg0");
+/// assert!(matches!(actual, Ok(())));
+/// 
+/// //clean up
+/// delete_device("wg0");
+/// ```
+/// 
+/// 
+pub fn add_device(device_name: &str) -> Result<(),std::io::Error>{
     let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_add_device(name)};
 
@@ -68,7 +124,7 @@ pub fn addDevice(device_name: &str) -> Result<(),std::io::Error>{
     Err(std::io::Error::last_os_error())
 
 }
-pub fn deleteDevice(device_name: &str) -> Result<(),std::io::Error>{
+pub fn delete_device(device_name: &str) -> Result<(),std::io::Error>{
     let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_del_device(name)};
 
@@ -118,7 +174,7 @@ mod tests {
     impl Drop for Context{
         fn drop(&mut self) {
             self.interfaces.iter().for_each(|ele| {
-                let _ = deleteDevice(*ele) ;
+                let _ = delete_device(*ele) ;
             });
         }
     }
@@ -128,8 +184,8 @@ mod tests {
             interfaces : vec![ "wg11", "wg10"],
             createInterface: Box::new(| this: &Context| {
                 for ele in this.interfaces.clone() {
-                    let _ = deleteDevice(ele).unwrap_or_default();
-                    let _ = addDevice(ele).unwrap_or_else(|e| {
+                    let _ = delete_device(ele).unwrap_or_default();
+                    let _ = add_device(ele).unwrap_or_else(|e| {
                         panic!("{:?}",e)
                     });
                 }
