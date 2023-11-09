@@ -1,6 +1,6 @@
 #![crate_name = "wgbind"]
 
-use std::{alloc::Layout, ffi::{CStr, CString}};
+use std::{alloc::Layout, ffi::CString};
 
 extern crate libc;
 extern crate wgbindraw_sys;
@@ -64,7 +64,7 @@ unsafe fn determine_length(  mut ptr :  *mut i8) -> usize {
 pub fn list_device_names() -> Option<Vec<String>> {
     // The type behind the c_buffer pointer is a string containing several \0 terminated strings
     // the caller does not own this string!!!
-    let mut c_buffer = unsafe { wg_list_device_names() };
+    let c_buffer = unsafe { wg_list_device_names() };
     if c_buffer.is_null() {
         return None
     } 
@@ -83,8 +83,8 @@ pub fn list_device_names() -> Option<Vec<String>> {
     // It is now possible to create an slice from the pointer with the
     // determinent length and from that slice create a String on the 
     // heap which we duplicated to own the data
-    let rawCharacters = unsafe { std::slice::from_raw_parts_mut(c_buffer.cast() as *mut u8 , c_buffer_length)};
-    let result = unsafe { String::from_utf8_unchecked( rawCharacters.to_owned()) };
+    let raw_characters = unsafe { std::slice::from_raw_parts_mut(c_buffer.cast() as *mut u8 , c_buffer_length)};
+    let result = unsafe { String::from_utf8_unchecked( raw_characters.to_owned()) };
  
     Some(Vec::from_iter(result.split_terminator('\0').map(|x| String::from(x))))
 }
@@ -136,7 +136,7 @@ pub fn delete_device(device_name: &str) -> Result<(),std::io::Error>{
 
 }
 
-pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
+pub fn get_device(device_name: &str) -> Result<wg_device,std::io::Error>{
     let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     //let structsize = std::mem::size_of::<wg_device>()+ std::mem::size_of::<wg_peer>()*2;
 
@@ -150,8 +150,8 @@ pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
     let result = unsafe{ wg_get_device(&mut device,name)};
 
     if result == 0 {
-        let newDevice = unsafe { *device };
-        return Ok(newDevice)
+        let new_device = unsafe { *device };
+        return Ok(new_device)
     }
 
     Err(std::io::Error::last_os_error())
@@ -163,12 +163,12 @@ pub fn getDevice(device_name: &str) -> Result<wg_device,std::io::Error>{
 
 #[cfg(test)]
 mod tests { 
-    use std::{ffi::CStr,};
+    use std::ffi::CStr;
     use super::*;
 
     struct Context {
         interfaces : Vec<&'static str>,
-        createInterface : Box<dyn Fn(&Context)>
+        create_interface : Box<dyn Fn(&Context)>
     }
 
     impl Drop for Context{
@@ -182,7 +182,7 @@ mod tests {
     fn setup() -> Context {
         let ctx = Context {
             interfaces : vec![ "wg11", "wg10"],
-            createInterface: Box::new(| this: &Context| {
+            create_interface: Box::new(| this: &Context| {
                 for ele in this.interfaces.clone() {
                     let _ = delete_device(ele).unwrap_or_default();
                     let _ = add_device(ele).unwrap_or_else(|e| {
@@ -200,11 +200,11 @@ mod tests {
     #[test]
     fn it_should_return_a_list_of_two_strings() {
         let ctx = setup();
-        ctx.createInterface.as_ref()(&ctx);
+        ctx.create_interface.as_ref()(&ctx);
 
         let device = *ctx.interfaces.first().unwrap();
 
-        let result = listDeviceNames();
+        let result = list_device_names();
         assert!((matches!(result, Some(_) )),"list should never return none");
         assert_eq!(result.unwrap().first().unwrap().as_str(), device);
         drop(ctx)
@@ -217,30 +217,29 @@ mod tests {
         let device  = *(device.first().unwrap());
         drop(ctx);
 
-        let result = addDevice(device); 
+        let result = add_device(device); 
         match result {
             Ok(r) => {
                 assert!(matches!(r, ()),"{:?}",result );
             },
             Err(e) => {
                 assert_eq!(e.kind(), std::io::ErrorKind::AlreadyExists)
-            },
-            _ => assert!(false, "{:?}",result)
+            }
         }
         
         
-        let result = deleteDevice(device); 
+        let result = delete_device(device); 
         assert!(matches!(result, Ok(())),"{:?}", result );
     }
 
     #[test]
     fn it_gets_a_device() {
         let ctx = setup();
-        ctx.createInterface.as_ref()(&ctx);
+        ctx.create_interface.as_ref()(&ctx);
 
         let device = *ctx.interfaces.first().unwrap();
 
-        let result = getDevice( device);
+        let result = get_device( device);
         let transform = unsafe {
             |d: wg_device| {
                 let data =  d.name.as_ptr().cast() as *const ::std::os::raw::c_char ;
