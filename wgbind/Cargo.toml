@@ -1,6 +1,6 @@
 [package]
 name = "wgbind"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 license = "MIT" 
 authors = ["Johannes Lüke"]
@@ -15,6 +15,6 @@ all-features = true
 
 [dependencies]
 libc = "0.2.150"
-wgbindraw-sys = "0.1.0"
+wgbindraw-sys = "0.2.0"
  
  

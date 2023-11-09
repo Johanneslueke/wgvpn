@@ -182,7 +182,7 @@ pub struct WireguardDevice {
  
 
 impl WireguardDevice {
-    pub fn new(device : Box<wg_device>,name: &'static str, flags: wg_device_flags, fwmark: u32, private_key: Option<&'static str>, public_key: Option<&'static str>) -> Self { 
+    pub fn new(device : Box<::core::ffi::c_void>,name: &'static str, flags: wg_device_flags, fwmark: u32, private_key: Option<&'static str>, public_key: Option<&'static str>) -> Self { 
         Self { raw_device: device, name, flags, fwmark, private_key, public_key,  } 
     }
 
@@ -273,6 +273,10 @@ impl WireguardControl for WireguardDevice{
         
         set_device(self)
     }
+
+    fn raw_device_handler(&self) -> &Box<core::ffi::c_void> {
+        &self.raw_device
+    }
 }
 
 trait WireguardControl   {
@@ -284,6 +288,13 @@ trait WireguardControl   {
 
     /// Read from the kernel
     fn refresh_device(&mut self) -> Result<(), std::io::Error>;
+
+    fn raw_device_handler(&self) -> &Box<::core::ffi::c_void>;
+
+    fn raw_device_ptr(&self) -> *mut wg_device {
+        let ptr = &* *self.raw_device_handler() as *const ::core::ffi::c_void;
+        ptr.cast_mut() as *mut wg_device
+    }
 }
 
 /// Set a new wireguard device - not a network interface
@@ -298,17 +309,18 @@ trait WireguardControl   {
 /// 
 pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
 
-    let raw_ptr = &* device.raw_device as *const ::core::ffi::c_void;
+    let raw_ptr = device.raw_device_ptr();
 
     // If the wireguard device has already a raw device then simply us that pointer 
     // only if the pointer is NULL skip this and create new raw device
     if raw_ptr.is_null() == false{
-        let error = unsafe { wg_set_device(raw_ptr.cast_mut() as *mut wg_device )};
+        let error = unsafe { wg_set_device(raw_ptr)};
     
         if error != 0 {
             return Err(std::io::Error::last_os_error());
         }
 
+        return Ok(())
     }
     
     // transform the name from &'static str into [i8;16]. The way to get there seems fucked up
@@ -346,8 +358,7 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
         public_key:  Default::default(),
 
 
-        //ignore, just for padding purposes
-        __bindgen_padding_0:  Default::default(),
+        
     });
 
     // Because the pointer is of type c_void, the destructor of Box has no effect on the value
@@ -356,7 +367,7 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     let handle = raw_ptr as *mut ::core::ffi::c_void;
     device.raw_device = unsafe { Box::from_raw(handle) };
 
-    let error = unsafe { wg_set_device(raw_ptr.cast_mut() )};
+    let error = unsafe { wg_set_device(device.raw_device_ptr())};
 
     if error != 0 {
         return Err(std::io::Error::last_os_error());
@@ -367,10 +378,7 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
 }
  
 pub fn free_device(device: &mut WireguardDevice) {
-    unsafe{
-        let wireguard_device = *device;
-         wg_free_device((wireguard_device).into())
-    }
+   unsafe {wg_free_device(device.raw_device_ptr())}
 }
 
 #[cfg(test)]
