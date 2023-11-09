@@ -284,12 +284,14 @@ name = "wgbind"
 version = "0.1.4"
 dependencies = [
  "libc",
- "wgbindraw-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wgbindraw-sys 0.1.0",
 ]
 
 [[package]]
 name = "wgbindraw-sys"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9a86bf745cafa030ff960ddef84fe6b0a99aa54953f4d8a5b094270940ce44d"
 dependencies = [
  "bindgen",
  "cc",
@@ -298,9 +300,7 @@ dependencies = [
 
 [[package]]
 name = "wgbindraw-sys"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9a86bf745cafa030ff960ddef84fe6b0a99aa54953f4d8a5b094270940ce44d"
+version = "0.2.0"
 dependencies = [
  "bindgen",
  "cc",
