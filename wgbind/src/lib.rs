@@ -1,3 +1,11 @@
+//! Wrapper around the wireguard c library originating from Jason A. Donenfeld <Jason@zx2c4.com>
+//! 
+//! Provides an abstraction around the c ffi bindings. This should allow to invoke
+//! Wireguard function within safe rust code. 
+//! Be aware to run these methods the programm requires the priviliges to change your
+//! network settings. Most likely root rights! otherwise calling the methods will fail.
+//! 
+//! The same is true if you attempt to run any tests.
 #![crate_name = "wgbind"]
 
 use std::{alloc::Layout, ffi::CString};
@@ -7,6 +15,8 @@ extern crate wgbindraw_sys;
 
 use wgbindraw_sys::*;
 
+pub mod wireguard_device;
+use wireguard_device::{WireguardDevice,WireguardControl};
 
 
 unsafe fn determine_length(  mut ptr :  *mut i8) -> usize {
@@ -125,7 +135,7 @@ pub fn add_device(device_name: &str) -> Result<(),std::io::Error>{
 
 }
 
-/// .
+/// Removes a wireguard network interface device
 pub fn delete_device(device_name: &str) -> Result<(),std::io::Error>{
     let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     let result = unsafe{ wg_del_device(name)};
@@ -138,7 +148,16 @@ pub fn delete_device(device_name: &str) -> Result<(),std::io::Error>{
 
 }
 
-/// .
+/// Gets a new wg_device
+/// 
+/// allocates a new object and fills it with the necessary data from the wg interface
+/// the device_name must match an network interface of type wireguard!
+/// 
+/// # Arguments
+/// 
+/// * `name` - Name of the Network Interface e.g. wg0
+/// 
+/// 
 pub fn get_device(device_name: &str) -> Result<wg_device,std::io::Error>{
     let name = CString::new(device_name).unwrap().into_raw().cast() as *const ::std::os::raw::c_char ;
     //let structsize = std::mem::size_of::<wg_device>()+ std::mem::size_of::<wg_peer>()*2;
@@ -161,141 +180,6 @@ pub fn get_device(device_name: &str) -> Result<wg_device,std::io::Error>{
 
 }
 
-/// # WireguardDevice
-/// 
-/// holds configuration data for a Wireguard Device.
-/// if this object drops, the associated strings get 
-/// lost, if the wireguard implementation depends on these
-/// string values, that might cause significant problems !!!
-/// 
-/// 
-#[derive(Debug)]
-pub struct WireguardDevice {
-    raw_device : Box<::core::ffi::c_void>,
-    name : &'static str,
-    flags: wg_device_flags,
-    fwmark: u32,
-    private_key: Option<&'static str>,
-    public_key: Option<&'static str>,
-}
-
- 
-
-impl WireguardDevice {
-    pub fn new(device : Box<::core::ffi::c_void>,name: &'static str, flags: wg_device_flags, fwmark: u32, private_key: Option<&'static str>, public_key: Option<&'static str>) -> Self { 
-        Self { raw_device: device, name, flags, fwmark, private_key, public_key,  } 
-    }
-
-    pub fn private_key(&self) -> Option<&str> {
-        self.private_key
-    }
-
-    pub fn public_key(&self) -> Option<&str> {
-        self.public_key
-    }
-
-    pub fn name(&self) -> &str {
-        self.name
-    }
-
-    pub fn set_name(&mut self, name: &'static str) {
-        self.name = name;
-    }
-
-    pub fn flags(&self) -> wg_device_flags {
-        self.flags
-    }
-
-    pub fn set_flags(&mut self, flags: wg_device_flags) {
-        self.flags = flags;
-    }
-
-    pub fn fwmark(&self) -> u32 {
-        self.fwmark
-    }
-
-    pub fn set_fwmark(&mut self, fwmark: u32) {
-        self.fwmark = fwmark;
-    }
-}
-
-impl Into<wg_device> for WireguardDevice{
-    fn into(self) -> wg_device {
-        todo!()
-    }
-}
-
-impl Into<WireguardDevice> for wg_device{
-    fn into(self) -> WireguardDevice {
-        todo!()
-    }
-}
-
-
-impl Into<*mut wg_device> for WireguardDevice{
-    fn into(self) -> *mut wg_device {
-        todo!()
-    }
-}
-
-impl Into<&mut WireguardDevice> for wg_device {
-    fn into(self) -> &'static mut WireguardDevice {
-        todo!()
-    }
-}
-
-
-impl Drop for WireguardDevice {
-    fn drop(&mut self) {
-        free_device(self);
-    }
-}
-
-
-
-impl WireguardControl for WireguardDevice{
-    fn create_interface(&self)-> Result<(),std::io::Error> {
-        return add_device(self.name)
-    }
-
-    fn remove_interface(&self) -> Result<(),std::io::Error> {
-        todo!()
-    }
-
-    fn update_device(&mut self) -> Result<(),std::io::Error> {
-        let result = get_device(self.name);
-        *self = result.unwrap().into();
-
-        Ok(())
-    }
-
-    fn refresh_device(&mut self) -> Result<(), std::io::Error> {
-        
-        set_device(self)
-    }
-
-    fn raw_device_handler(&self) -> &Box<core::ffi::c_void> {
-        &self.raw_device
-    }
-}
-
-trait WireguardControl   {
-    fn create_interface(&self) -> Result<(),std::io::Error>;
-    fn remove_interface(&self) -> Result<(),std::io::Error>;
-
-    /// writes to the kernal 
-    fn update_device(&mut self) -> Result<(),std::io::Error>;
-
-    /// Read from the kernel
-    fn refresh_device(&mut self) -> Result<(), std::io::Error>;
-
-    fn raw_device_handler(&self) -> &Box<::core::ffi::c_void>;
-
-    fn raw_device_ptr(&self) -> *mut wg_device {
-        let ptr = &* *self.raw_device_handler() as *const ::core::ffi::c_void;
-        ptr.cast_mut() as *mut wg_device
-    }
-}
 
 /// Set a new wireguard device - not a network interface
 /// 
@@ -314,7 +198,7 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     // If the wireguard device has already a raw device then simply us that pointer 
     // only if the pointer is NULL skip this and create new raw device
     if raw_ptr.is_null() == false{
-        let error = unsafe { wg_set_device(raw_ptr)};
+        let error = unsafe { wg_set_device(raw_ptr.cast_mut())};
     
         if error != 0 {
             return Err(std::io::Error::last_os_error());
@@ -326,7 +210,7 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     // transform the name from &'static str into [i8;16]. The way to get there seems fucked up
     // not sure if this the best way
     let devicename = unsafe {
-        let devicename = CString::new(device.name).expect("CString::new failed");
+        let devicename = CString::new(device.name().unwrap()).expect("CString::new failed");
         let devicename = std::ffi::CStr::from_bytes_with_nul(devicename.to_bytes_with_nul()).expect("CStr::from_bytes_with_null failed");
         let devicename = std::slice::from_raw_parts( devicename.as_ptr(), 16).as_ptr();
         let devicename = *std::mem::transmute::<*const i8,&[i8;16]>(devicename);
@@ -347,9 +231,9 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     let  wgdevice  =  Box::new(wg_device { 
         name: devicename,
         ifindex: 0, 
-        flags: device.flags, 
+        flags: device.flags(), 
          
-        fwmark: device.fwmark, 
+        fwmark: device.fwmark(), 
         listen_port: 51820,
        
         first_peer: firstpeer,
@@ -364,10 +248,10 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     // Because the pointer is of type c_void, the destructor of Box has no effect on the value
     // behind the pointer
     let raw_ptr = &* wgdevice as *const wg_device;
-    let handle = raw_ptr as *mut ::core::ffi::c_void;
-    device.raw_device = unsafe { Box::from_raw(handle) };
+    let handle = raw_ptr as *const ::core::ffi::c_void;
+    device.raw_device = unsafe { Box::from(handle) };
 
-    let error = unsafe { wg_set_device(device.raw_device_ptr())};
+    let error = unsafe { wg_set_device(device.raw_device_ptr().cast_mut())};
 
     if error != 0 {
         return Err(std::io::Error::last_os_error());
@@ -376,9 +260,10 @@ pub fn set_device(device : &mut WireguardDevice) -> Result<(), std::io::Error> {
     Ok(())
    
 }
- 
+
+/// delete the wg_device allocated by get_device
 pub fn free_device(device: &mut WireguardDevice) {
-   unsafe {wg_free_device(device.raw_device_ptr())}
+   unsafe {wg_free_device(device.raw_device_ptr().cast_mut())}
 }
 
 #[cfg(test)]

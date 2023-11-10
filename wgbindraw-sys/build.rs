@@ -42,6 +42,7 @@ fn main() {
         // .must_use_type("bool")
         // .must_use_type("char")
         // .must_use_type(r"char \*")
+        
         .allowlist_function("wg_.*")
         .bitfield_enum("wg_peer_flags")
         .bitfield_enum("wg_device_flags")
